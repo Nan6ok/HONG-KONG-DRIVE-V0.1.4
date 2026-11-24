@@ -1,0 +1,62 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"><meta name="theme-color" content="#07111d"><meta name="apple-mobile-web-app-capable" content="yes"><title>香港極速駕駛 V0.1.5</title><link rel="manifest" href="./manifest.webmanifest"><style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07111d;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans TC",sans-serif;touch-action:none}canvas{position:fixed;inset:0;width:100%;height:100%;display:block}.panel{background:#071522cf;border:1px solid #8bd7e455;border-radius:14px;backdrop-filter:blur(10px);padding:9px 12px}#hud{position:fixed;top:env(safe-area-inset-top,8px);left:9px;right:9px;display:flex;justify-content:space-between;pointer-events:none}#speed{font-size:26px;font-weight:900;color:#55e7eb}small{color:#b9d1dc}#mission{position:fixed;top:75px;left:9px;font-size:12px;pointer-events:none}#tools{position:fixed;top:env(safe-area-inset-top,8px);right:9px;display:flex;gap:5px}button,select{color:white;background:#123047;border:1px solid #5d98aa;border-radius:10px;padding:9px;font:inherit}#controls{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 13px);left:0;right:0;padding:0 14px;display:flex;justify-content:space-between;pointer-events:none}.cluster{display:flex;gap:8px;pointer-events:auto}.ctrl{width:61px;height:62px;font-size:23px;border-radius:17px;background:#071522d9;touch-action:none}.long{height:76px;width:68px;font-size:14px;font-weight:bold}.active{background:#087f92!important}#start,#settings{position:fixed;inset:0;z-index:4;background:#020912eF;display:grid;place-items:center;padding:20px}#settings{display:none;z-index:5}#card{max-width:460px;width:100%;padding:22px}h1{font-size:26px;margin:0 0 8px}p{font-size:14px;line-height:1.55;color:#c4d7e1}#play{width:100%;padding:14px;background:#087f92;font-weight:bold}label{display:block;margin:12px 0 5px}select{width:100%}#close{width:100%;margin-top:14px}#hint{font-size:11px;color:#b6d0dc}#diagnostic{position:fixed;left:10px;right:10px;bottom:110px;z-index:8;display:none;background:#3b1010ee;border:1px solid #ff7777;border-radius:12px;padding:12px;font-size:12px;white-space:pre-wrap;max-height:30vh;overflow:auto}
+</style></head><body><canvas id="c"></canvas><div id="diagnostic"></div><div id="hud"><div class="panel">🇭🇰 香港極速駕駛 <small>V0.1.5</small><br><small id="zone">中環・金鐘</small></div><div class="panel" style="text-align:right"><div id="speed">0 <small>km/h</small></div><small id="traffic">交通：一般</small></div></div><div id="mission" class="panel">保持左線 · 避開車流 · 累積駕駛分數</div><div id="tools"><button id="cam">鏡頭</button><button id="pause">Ⅱ</button><button id="settingsBtn">⚙</button></div><div id="controls"><div class="cluster"><button class="ctrl" data-k="left">◀</button><button class="ctrl" data-k="right">▶</button></div><div class="cluster"><button class="ctrl long" data-k="brake">煞車</button><button class="ctrl long" data-k="gas">油門</button></div></div>
+<div id="start"><div id="card" class="panel"><h1>香港極速駕駛</h1><small>全新原創程序化 3D 城市 · V0.1.5</small><p>自行建立 3D 道路、樓宇、汽車及模擬交通。不使用 Google Earth 或香港政府 3D 建築模型，亦不載入外部 3D 引擎。</p><p>觸控：左右轉向、油門加速、煞車減速。支援 iPhone Safari。</p><p id="hint">注意：本版為可玩的全港分區風格原型，並非精確地理道路重建；車流為遊戲 AI 模擬，並非即時交通。</p><button id="play">開始駕駛</button></div></div>
+<div id="settings"><div class="panel" style="width:min(420px,100%)"><h2>駕駛設定</h2><label>香港區域場景</label><select id="district"><option value="hk">中環・金鐘</option><option value="kowloon">尖沙咀・旺角</option><option value="island">銅鑼灣・灣仔</option><option value="nt">沙田・新界</option><option value="harbour">維港海旁</option></select><label>畫質</label><select id="quality"><option value="low">省電（iPhone 建議）</option><option value="mid" selected>平衡</option><option value="high">高</option></select><button id="close" >完成</button></div></div>
+<script>
+(()=>{'use strict';window.addEventListener('error',e=>{let d=document.querySelector('#diagnostic');if(d){d.style.display='block';d.textContent='JavaScript 錯誤：'+(e.message||'未知錯誤')}});const c=document.querySelector('#c'),g=c.getContext('webgl',{antialias:false,powerPreference:'low-power'});if(!g){document.querySelector('#hint').textContent='WebGL 未能啟動。請更新 iOS，並以 Safari 一般瀏覽模式重試。';return}
+const V='attribute vec3 p;attribute vec3 co;uniform mat4 m;varying vec3 v;void main(){gl_Position=m*vec4(p,1.);v=co;}',F='precision mediump float;varying vec3 v;void main(){gl_FragColor=vec4(v,1.);}';
+function sh(t,s){let x=g.createShader(t);g.shaderSource(x,s);g.compileShader(x);if(!g.getShaderParameter(x,g.COMPILE_STATUS))throw Error(g.getShaderInfoLog(x));return x}let pr=g.createProgram();g.attachShader(pr,sh(g.VERTEX_SHADER,V));g.attachShader(pr,sh(g.FRAGMENT_SHADER,F));g.linkProgram(pr);g.useProgram(pr);
+let P=g.getAttribLocation(pr,'p'),C=g.getAttribLocation(pr,'co'),M=g.getUniformLocation(pr,'m');
+const verts=[[-.5,-.5,-.5],[.5,-.5,-.5],[.5,.5,-.5],[-.5,.5,-.5],[-.5,-.5,.5],[.5,-.5,.5],[.5,.5,.5],[-.5,.5,.5]],faces=[[0,1,2,0,2,3],[5,4,7,5,7,6],[4,0,3,4,3,7],[1,5,6,1,6,2],[3,2,6,3,6,7],[4,5,1,4,1,0]],cube=[];faces.flat().forEach(i=>cube.push(...verts[i]));
+const pb=g.createBuffer(),cb=g.createBuffer();g.enable(g.DEPTH_TEST);g.depthFunc(g.LEQUAL);
+const mul=(a,b)=>{let o=new Float32Array(16);for(let r=0;r<4;r++)for(let k=0;k<4;k++)o[k*4+r]=a[r]*b[k*4]+a[4+r]*b[k*4+1]+a[8+r]*b[k*4+2]+a[12+r]*b[k*4+3];return o};
+function persp(f,a,n,z){let t=1/Math.tan(f/2),o=new Float32Array(16);o[0]=t/a;o[5]=t;o[10]=(z+n)/(n-z);o[11]=-1;o[14]=2*z*n/(n-z);return o}
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],unit=a=>{let l=Math.hypot(...a)||1;return a.map(v=>v/l)};
+function look(e,t){let z=unit(e.map((v,i)=>v-t[i])),x=unit(cross([0,1,0],z)),y=cross(z,x);return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,e),-dot(y,e),-dot(z,e),1])}
+
+let framePositions=[],frameColors=[];
+function box(vp,x,y,z,sx,sy,sz,col){
+  for(let i=0;i<cube.length;i+=3){
+    framePositions.push(cube[i]*sx+x,cube[i+1]*sy+y,cube[i+2]*sz+z);
+    frameColors.push(col[0],col[1],col[2]);
+  }
+}
+function flushScene(vp){
+  if(!framePositions.length)return;
+  g.useProgram(pr);
+  g.uniformMatrix4fv(M,false,vp);
+  g.bindBuffer(g.ARRAY_BUFFER,pb);
+  g.bufferData(g.ARRAY_BUFFER,new Float32Array(framePositions),g.DYNAMIC_DRAW);
+  g.enableVertexAttribArray(P);g.vertexAttribPointer(P,3,g.FLOAT,false,0,0);
+  g.bindBuffer(g.ARRAY_BUFFER,cb);
+  g.bufferData(g.ARRAY_BUFFER,new Float32Array(frameColors),g.DYNAMIC_DRAW);
+  g.enableVertexAttribArray(C);g.vertexAttribPointer(C,3,g.FLOAT,false,0,0);
+  g.drawArrays(g.TRIANGLES,0,framePositions.length/3);
+  framePositions.length=0;frameColors.length=0;
+}
+
+const themes={hk:{n:'中環・金鐘',sky:[.32,.47,.57],b:[[.45,.55,.61],[.58,.62,.65],[.33,.4,.49]]},kowloon:{n:'尖沙咀・旺角',sky:[.4,.49,.56],b:[[.56,.45,.37],[.4,.48,.55],[.65,.57,.45]]},island:{n:'銅鑼灣・灣仔',sky:[.37,.53,.63],b:[[.55,.59,.61],[.64,.52,.44],[.36,.47,.56]]},nt:{n:'沙田・新界',sky:[.42,.59,.65],b:[[.52,.62,.5],[.66,.64,.53],[.45,.56,.62]]},harbour:{n:'維港海旁',sky:[.33,.52,.65],b:[[.48,.58,.66],[.61,.62,.6],[.37,.48,.58]]}};
+let zone='hk',quality='mid',car={x:0,z:0,speed:0,steer:0,score:0},traffic=[],buildings=[],keys={left:0,right:0,gas:0,brake:0},go=false,pause=false,cam=0,last=0;
+function rand(n){let x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x)}
+function world(){buildings=[];traffic=[];let count=quality==='low'?2:quality==='high'?4:3;for(let s of [-1,1])for(let r=0;r<24;r++)for(let j=0;j<count;j++){let h=10+rand(r*13+j*7)*(zone==='nt'?25:65);buildings.push({x:s*(12+j*5.3+rand(r*31+j)*2),z:-r*17-18-rand(j*91+r)*7,w:3.5+rand(j+r*9)*4,h,d:5+rand(j*5+r)*5,col:themes[zone].b[Math.floor(rand(r+j*17)*3)]})}for(let i=0;i<14;i++)traffic.push({x:(i%3-1)*3.1,z:-28-i*25,s:12+rand(i*8)*15,col:[[.8,.12,.08],[.12,.3,.8],[.85,.8,.62],[.12,.14,.17]][i%4]})}
+c.addEventListener('webglcontextlost',e=>{e.preventDefault();showError('WebGL 圖形裝置已重設。請重新載入頁面並選擇省電畫質。')});world();function resize(){let d=Math.min(devicePixelRatio||1,quality==='low'?1:quality==='high'?1.5:1.2);c.width=innerWidth*d;c.height=innerHeight*d;g.viewport(0,0,c.width,c.height)}addEventListener('resize',resize);resize();
+function render(dt){framePositions.length=0;frameColors.length=0;let sf=car.speed/3.6;car.z-=sf*dt;car.x=Math.max(-4.3,Math.min(4.3,car.x+car.steer*sf*dt*.22));let eye=[car.x*.5,cam?7:4.1,car.z+(cam?16:10)],target=[car.x,1,car.z-12],vp=mul(persp(1.02,c.width/c.height,.1,360),look(eye,target));g.clearColor(...themes[zone].sky,1);g.clear(g.COLOR_BUFFER_BIT|g.DEPTH_BUFFER_BIT);
+box(vp,0,-.2,car.z-115,13,.4,260,[.13,.15,.17]);box(vp,-7.5,.02,car.z-115,2,.5,260,[.38,.39,.37]);box(vp,7.5,.02,car.z-115,2,.5,260,[.38,.39,.37]);
+for(let z=-230;z<25;z+=12){box(vp,0,.02,car.z+z,.12,.025,5,[.86,.82,.61]);box(vp,-3.2,.02,car.z+z,.1,.025,5,[.9,.9,.85]);box(vp,3.2,.02,car.z+z,.1,.025,5,[.9,.9,.85])}
+for(let b of buildings){let rz=b.z-car.z;if(rz>25||rz< -270)continue;box(vp,b.x,b.h/2,b.z,b.w,b.h,b.d,b.col);for(let y=4;y<Math.min(b.h-2,16);y+=10)box(vp,b.x,y,b.z-b.d/2-.04,b.w*.8,.2,.05,[.16,.29,.37])}
+for(let t of traffic){t.z-=(t.s/3.6+sf*.45)*dt;if(t.z<car.z-250)t.z=car.z+40+rand(t.z)*150;if(t.z-car.z< -260||t.z-car.z>30)continue;box(vp,t.x,.68,t.z,1.8,1.2,4,t.col);box(vp,t.x,.95,t.z-1.1,1.45,.55,1.7,[.08,.17,.23])}
+box(vp,car.x,.68,car.z,2,1.05,4.4,[.02,.48,.58]);box(vp,car.x,.98,car.z-.35,1.55,.68,2.15,[.08,.18,.23]);box(vp,car.x-.68,.32,car.z-1.55,.22,.42,.55,[.06,.06,.07]);box(vp,car.x+.68,.32,car.z-1.55,.22,.42,.55,[.06,.06,.07]);flushScene(vp)}
+function showError(err){let d=document.querySelector('#diagnostic');d.style.display='block';d.textContent='遊戲診斷錯誤：'+(err&&err.message?err.message:String(err))+'\n請截圖此訊息傳回診斷。'}
+function frame(ts){if(!go)return;try{let dt=Math.min(.05,(ts-last)/1000||.016);last=ts;if(!pause){car.speed=Math.max(0,Math.min(220,car.speed+((keys.gas?42:0)-(keys.brake?55:0)-(keys.gas?0:9))*dt));let st=(keys.right?1:0)-(keys.left?1:0);car.steer+=(st-car.steer)*Math.min(1,dt*8);car.score+=dt*car.speed*.03;for(let t of traffic)if(Math.abs(t.z-car.z)<5&&Math.abs(t.x-car.x)<2.1)car.speed*=.94}render(dt);document.querySelector('#speed').innerHTML=Math.round(car.speed)+' <small>km/h</small>';document.querySelector('#traffic').textContent='交通：'+(traffic.length>11?'繁忙':'一般');document.querySelector('#mission').textContent='分數 '+Math.floor(car.score)+' · '+themes[zone].n+' · 注意前方車流';requestAnimationFrame(frame)}catch(err){go=false;showError(err);console.error(err)}}
+document.querySelector('#play').onclick=()=>{document.querySelector('#start').style.display='none';go=true;last=performance.now();requestAnimationFrame(frame)};
+document.querySelector('#pause').onclick=e=>{pause=!pause;e.target.textContent=pause?'▶':'Ⅱ'};document.querySelector('#cam').onclick=()=>cam=1-cam;
+document.querySelector('#settingsBtn').onclick=()=>document.querySelector('#settings').style.display='grid';document.querySelector('#close').onclick=()=>document.querySelector('#settings').style.display='none';
+document.querySelector('#district').onchange=e=>{zone=e.target.value;world();document.querySelector('#zone').textContent=themes[zone].n+' · 原創場景'};
+document.querySelector('#quality').onchange=e=>{quality=e.target.value;world();resize()};
+document.querySelectorAll('[data-k]').forEach(b=>{let k=b.dataset.k;let down=e=>{e.preventDefault();keys[k]=1;b.classList.add('active');try{b.setPointerCapture(e.pointerId)}catch(_){}},up=e=>{e.preventDefault();keys[k]=0;b.classList.remove('active')};b.addEventListener('pointerdown',down);b.addEventListener('pointerup',up);b.addEventListener('pointercancel',up);b.addEventListener('lostpointercapture',up)});
+addEventListener('keydown',e=>{let k={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'gas',ArrowDown:'brake',' ':'brake'}[e.key];if(k)keys[k]=1});addEventListener('keyup',e=>{let k={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'gas',ArrowDown:'brake',' ':'brake'}[e.key];if(k)keys[k]=0});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){pause=true;document.querySelector('#pause').textContent='▶'}});
+if('serviceWorker'in navigator&&!location.protocol.startsWith('file'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+})()
+</script></body></html>
